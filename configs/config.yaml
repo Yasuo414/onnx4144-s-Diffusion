@@ -20,7 +20,7 @@ binarization_args:
     fixed_pitch_shifting:
       enabled: false
       probability: 0.75
-      range: [-5.0, 5.0]
+      targets: [-5.0, 5.0]
     
     random_time_stretching:
       enabled: false
@@ -265,4 +265,5 @@ spec_max:
 - 0.0
 
 spec_min:
+
 - -5.0
