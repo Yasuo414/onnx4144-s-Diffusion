@@ -22,7 +22,6 @@ It uses more modern and better mechanisms for speech generation. Compared to the
 + Support for ReFlow and DDIM
 + Support for LYNXNet
 + Simplified configuration structure
-+ Added Auxiliary decoder to speed up generation and, above all, training
 
 ## How to set it up
 You can find out how to run this project on your machine in the [Wiki](https://github.com/Yasuo414/onnx4144-s-Diffusion/wiki). Honestly, if I wrote everything down here, there would be no need for the [Wiki](https://github.com/Yasuo414/onnx4144-s-Diffusion/wiki).
