@@ -1,4 +1,5 @@
 import os
+import random
 from multiprocessing.pool import Pool
 
 import matplotlib
@@ -27,7 +28,7 @@ from utils.hparams import hparams
 from utils.pitch_utils import denorm_f0
 from utils.pl_utils import data_loader
 from utils.plot import spec_to_figure, f0_to_figure
-from utils.svc_utils import SvcDataset
+from utils.svc_utils import SvcDataset, IndexedDataset
 
 matplotlib.use('Agg')
 DIFF_DECODERS = {
@@ -118,9 +119,85 @@ class SvcTask(BaseTask):
 
     @data_loader
     def train_dataloader(self):
-        train_dataset = self.dataset_cls(hparams['train_set_name'], shuffle=True)
-        return self.build_dataloader(train_dataset, True, self.max_tokens, self.max_sentences,
-                                     endless=hparams['endless_ds'])
+        train_dataset = self.dataset_cls(hparams["train_set_name"], shuffle=True)
+
+        if hparams["diff_decoder_type"] == "lynxnet":
+            train_dataset = self.dataset_cls(hparams['train_set_name'], shuffle=False)
+
+            try:
+                print("| Starting Balanced Batch Sampling...")
+            
+                print("| Loading metadata and sorting data by speaker...")
+                indices_by_spk = [[] for _ in range(hparams['num_spk'])]
+            
+                if train_dataset.indexed_ds is None:
+                    train_dataset.indexed_ds = IndexedDataset(f'{train_dataset.data_dir}/{train_dataset.prefix}')
+
+                for i in tqdm(range(len(train_dataset)), desc="Reading metadata for the sampler"):
+                    sample = train_dataset.indexed_ds[i]
+                    spk_id = sample.get('spk_id')
+                    if spk_id is not None:
+                        indices_by_spk[spk_id].append(i)
+            
+                for i in range(hparams['num_spk']):
+                    print(f"| Speaker {i} has {len(indices_by_spk[i])} samples.")
+
+                batches_by_spk = []
+                for spk_id in range(hparams['num_spk']):
+                    spk_indices = indices_by_spk[spk_id]
+                    if not spk_indices:
+                        continue
+                
+                    def num_tokens_fn_for_spk(i):
+                        original_index = spk_indices[i]
+                        return train_dataset.sizes[original_index]
+
+                    sorted_internal_indices = np.argsort([train_dataset.sizes[i] for i in spk_indices])
+                    sorted_spk_indices = np.array(spk_indices)[sorted_internal_indices].tolist()
+
+                    spk_batch_sampler = utils.batch_by_size(
+                        np.arange(len(sorted_spk_indices)),
+                        num_tokens_fn=lambda i: train_dataset.sizes[sorted_spk_indices[i]],
+                        max_tokens=self.max_tokens, 
+                        max_sentences=self.max_sentences
+                    )
+                
+                    remapped_batches = [[sorted_spk_indices[i] for i in batch] for batch in spk_batch_sampler]
+                
+                    batches_by_spk.append(remapped_batches)
+                    print(f"| Created {len(remapped_batches)} batches for speaker {spk_id}.")
+            
+                mixed_batches = []
+                if not batches_by_spk:
+                    raise ValueError("No batches have been created. Check the data.")
+
+                for spk_batches in batches_by_spk:
+                    random.shuffle(spk_batches)
+
+                max_num_batches = max(len(b) for b in batches_by_spk)
+                for i in range(max_num_batches):
+                    spk_order = list(range(len(batches_by_spk)))
+                    random.shuffle(spk_order)
+                    for spk_idx in spk_order:
+                        if i < len(batches_by_spk[spk_idx]):
+                            mixed_batches.append(batches_by_spk[spk_idx][i])
+            
+                print(f"| Total of {len(mixed_batches)} balanced batches created and mixed.")
+
+                return torch.utils.data.DataLoader(
+                    train_dataset,
+                    batch_sampler=mixed_batches,
+                    num_workers=train_dataset.num_workers,
+                    collate_fn=train_dataset.collater,
+                    pin_memory=False
+                )
+            except Exception as e:
+                print(f"| Error creating Balanced Batch Sampler: {e}")
+                print("| Continuing with the standard data loader.")
+                train_dataset.shuffle = True
+                return self.build_dataloader(train_dataset, True, self.max_tokens, self.max_sentences, endless=hparams['endless_ds'])
+        else:
+            return self.build_dataloader(train_dataset, True, self.max_tokens, self.max_sentences, endless=hparams['endless_ds'])
 
     @data_loader
     def val_dataloader(self):
