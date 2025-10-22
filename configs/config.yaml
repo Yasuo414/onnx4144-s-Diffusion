@@ -1,0 +1,268 @@
+K_step: 1000
+K_step_infer: 20
+T_start: 0.4
+T_start_infer: 0.4
+
+accumulate_grad_batches: 1
+audio_num_mel_bins: 128
+audio_sample_rate: 44100
+
+binarization_args:
+  shuffle: false
+  with_spk_embed: false
+
+  augmentation_args:
+    random_pitch_shifting:
+      enabled: false
+      probability: 0.75
+      range: [-3.0, 3.0]
+    
+    fixed_pitch_shifting:
+      enabled: false
+      probability: 0.75
+      range: [-5.0, 5.0]
+    
+    random_time_stretching:
+      enabled: false
+      probability: 0.4
+      range: [0.8, 1.2]
+    
+    fixed_time_stretching:
+      enabled: false
+      probability: 0.3
+      targets: [0.9, 1.1, 1.15]
+
+binarizer_cls: preprocessing.svc_binarizer.SvcBinarizer
+task_cls: training.svc_task.SvcTask
+
+check_val_every_n_epoch: 10
+choose_test_manually: true
+clip_grad_norm: 1
+content_cond_steps: []
+
+num_spk: 2
+use_spk_id: true
+
+speakers:
+- JSUT
+- No.7
+
+datasets:
+- JSUT
+- No.7
+
+raw_data_dir:
+- data/raw/JSUT
+- data/raw/No.7
+
+test_prefixes:
+- No.7:01_segment_0019
+- No.7:34_segment_0018
+- No.7:51_segment_0039
+- JSUT:030_15
+- JSUT:003_6
+- JSUT:051_10
+
+binary_data_dir: data/binary/JSUT_No7
+statictics_path: configs/statistics.yaml
+work_dir: checkpoints/JSUT
+
+test_ids: []
+test_input_dir: ""
+train_set_name: train
+test_set_name: test
+valid_num: 0
+valid_set_name: valid
+
+vocoder: modules.vocoders.nsf_hifigan.NsfHifiGAN
+vocoder_ckpt: checkpoints/nsf_hifigan/model
+
+hubert_path: checkpoints/hubert/hubert_soft.pt
+use_cn_hubert: false
+
+wav2spec_eps: 1e-6
+weight_decay: 0
+win_size: 2048
+
+perform_enhance: true
+pitch_ar: false
+pitch_enc_hidden_stride_kernel:
+- 0,2,5
+- 0,2,5
+- 0,2,5
+pitch_extractor: parselmouth
+pitch_loss: l2
+pitch_norm: log
+pitch_type: frame
+use_crepe: false
+use_rmvpe: true
+use_rmvpe_viterbi: false
+use_parselmouth: false
+
+dec_ffn_kernel_size: 9
+dec_layers: 4
+decoder_type: fft
+dict_dir: ""
+
+diff_decoder_type: wavenet
+diff_decoder_args:
+  wavenet:
+    in_dims: 128
+    hidden_size: 256
+    residual_layers: 20
+    residual_channels: 512
+    norm_type: gn
+    dropout: 0.1
+    dilation_cycle_length: 4
+
+  lynxnet:
+    in_dims: 128
+    num_features: 1
+    num_layers: 6
+    num_channels: 512
+    expansion_factor: 2
+    kernel_size: 31
+    activation: PReLU
+    dropout: 0.0
+    strong_condition: true
+
+diff_loss_type: l2
+diff_type: ddpm
+prediction_type: x_start
+diff_accelerator: ddim
+diff_speedup: 1
+sampling_algorithm: rk5
+
+dilation_cycle_length: 4
+dropout: 0.1
+ds_workers: 1
+
+dur_enc_hidden_stride_kernel:
+- 0,2,3
+- 0,2,3
+- 0,1,3
+dur_loss: mse
+dur_predictor_kernel: 3
+dur_predictor_layers: 5
+
+enc_ffn_kernel_size: 9
+enc_layers: 4
+encoder_K: 8
+encoder_type: fft
+
+endless_ds: false
+
+f0_bin: 256
+f0_max: 1100.0
+f0_min: 40.0
+ffn_act: gelu
+ffn_padding: SAME
+fft_size: 2048
+fmax: 16000
+fmin: 40
+
+fs2_ckpt: ""
+gaussian_start: true
+gen_dir_name: ""
+gen_tgt_spk_id: -1
+hidden_size: 256
+hop_size: 512
+keep_bins: 128
+num_heads: 2
+num_sanity_val_steps: 1
+log_interval: 100
+loud_norm: false
+out_wav_norm: false
+pe_ckpt: checkpoints/0102_xiaoma_pe/model_ckpt_steps_60000.ckpt
+pe_enable: false
+
+optimizer_adam_beta1: 0.9
+optimizer_adam_beta2: 0.98
+schedule_type: linear
+seed: 1234
+
+hubert_gpu: true
+infer: false
+load_ckpt: ""
+
+use_denoise: false
+use_energy_embed: false
+use_gt_dur: false
+use_gt_f0: false
+use_nsf: true
+use_pitch_embed: true
+use_pos_embed: true
+use_spk_embed: false
+use_split_spk_id: false
+use_uv: false
+use_var_enc: false
+
+lambda_commit: 0.25
+lambda_energy: 0.0
+lambda_f0: 1.0
+lambda_ph_dur: 0.3
+lambda_sent_dur: 1.0
+lambda_uv: 1.0
+lambda_word_dur: 1.0
+lambda_aux_loss: 1.0
+lambda_mel_loss: 1.0
+
+use_amp: false
+num_ckpt_keep: 10
+decay_steps: 40000
+warmup_updates: 2000
+val_check_interval: 2000
+lr: 0.0005
+
+max_beta: 0.02
+max_epochs: 3000
+max_sentences: 1
+max_eval_sentences: 1
+max_eval_tokens: 60000
+max_tokens: 80000
+max_frames: 42000
+max_input_tokens: 60000
+max_updates: 22000
+
+mel_loss: ssim:0.5|l1:0.5
+mel_vmax: 1.5
+mel_vmin: -6.0
+min_level_db: -120
+norm_type: gn
+
+stop_token_weight: 5.0
+sort_by_len: true
+spk_cond_steps: []
+speaker_id: single
+num_test_samples: 0
+num_valid_plots: 10
+
+predictor_dropout: 0.5
+predictor_grad: 0.1
+predictor_hidden: -1
+predictor_kernel: 5
+predictor_layers: 5
+prenet_dropout: 0.5
+prenet_hidden_size: 256
+pretrain_fs_ckpt: ""
+processed_data_dir: xxx
+profile_infer: false
+ref_norm_layer: bn
+rel_pos: true
+reset_phone_dict: true
+
+save_best: false
+save_ckpt: true
+save_codes:
+- configs
+- modules
+- src
+- utils
+save_f0: true
+save_gt: false
+
+spec_max:
+- 0.0
+
+spec_min:
+- -5.0
